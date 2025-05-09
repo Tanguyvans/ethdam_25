@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { usePrivy } from '@privy-io/react-auth';
 
 interface Challenge {
   id: number;
@@ -11,6 +12,7 @@ interface Challenge {
 }
 
 export default function Home() {
+  const { login, logout, authenticated, user } = usePrivy();
   const challenges: Challenge[] = [
     {
       id: 1,
@@ -33,7 +35,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-8 bg-gray-50 dark:bg-gray-900">
-      <main className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-end mb-8">
+          {authenticated ? (
+            <div className="flex items-center gap-4">
+              <span className="text-gray-600 dark:text-gray-300">
+                {user?.wallet?.address?.slice(0, 6)}...{user?.wallet?.address?.slice(-4)}
+              </span>
+              <button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={login}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+            >
+              Connect Wallet
+            </button>
+          )}
+        </div>
         <h1 className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white">
           Available Challenges
         </h1>
@@ -66,7 +90,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
