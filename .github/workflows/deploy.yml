@@ -27,10 +27,14 @@ jobs:
           cache: "npm" # Or yarn, pnpm
       - name: Install dependencies
         run: npm install # Or yarn install, pnpm install
+      - name: List files before build # DEBUG STEP
+        run: ls -R .
       - name: Build with Next.js
         run: npm run build # Or yarn build, pnpm build
-      - name: Check for out directory
-        run: ls -a
+      - name: Check build command exit code # DEBUG STEP
+        run: echo "Build command exit code: $?"
+      - name: List files after build to check for 'out' directory # DEBUG STEP
+        run: ls -R .
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
