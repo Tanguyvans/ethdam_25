@@ -1,6 +1,0 @@
-node_modules/
-*.log
-
-frontend/dist
-frontend/playwright-report
-frontend/test-results
