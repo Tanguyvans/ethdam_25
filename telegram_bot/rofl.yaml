@@ -17,13 +17,14 @@ artifacts:
     compose: compose.yaml
 deployments:
   default:
-    app_id: rofl1qpxa0awvksdr2cur40gzjmg6590cl3ystuw30574
+    app_id: rofl1qprjn04evt4lu72r3avlqmg7q4wpd9px0smxcypt
     network: testnet
     paratime: sapphire
-    admin: tanguy
+    admin: testnet
+    oci_repository: rofl.sh/73d4f5ba-c2f1-4612-8aa5-2e84baf498c7:1746801861
     trust_root:
-      height: 26517847
-      hash: 00177e293ed69aacdcc4d8ae6e8978dd9a920516ef77e647b7c8ca445c58beee
+      height: 26518957
+      hash: 3e496e99560b4c0318627045d2e07945906d565af5751add2ebb0704ec311c5f
     policy:
       quotes:
         pcs:
@@ -31,12 +32,17 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - id: aICYct5N8o0j9wQy9LXf/kZUVZWdi0MdvHRkyu/FjMkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - id: dYVY4e+7L19L2WeaQU28bcEvjtmXwV1/egG8TSR0l1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: 9uxGLlATZmaIsVz4xuM+qA1yGxYv5te1k+z+xUXfuGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: U7Dves2qyXUuRxcFYKI7zCJfi7inWb708q2IUOwYQIMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - any: {}
       fees: endorsing_node
       max_expiration: 3
     secrets:
       - name: TOKEN
-        value: pGJwa1ggKSQj5PvCcrB+odsGYez7NCGhdo/7+oylxrnXCxxtP2xkbmFtZVXu8RzWox/cNM1QUfX7I/LVuGmAwhVlbm9uY2VP9KX7+jt3/JbmLmKxrFMPZXZhbHVlWD7ZvXlQOBa8GaQtxgqOjfi35mtYapWigJVNNenheF8mQ1YEL8ZofISS8XyST2+a+tQu+4I3ArMQSnCc0HeKnw==
+        value: pGJwa1ggKGp4FIe+/4wHeHOrrEOI5FGVTxc1ZZ6tfmOyDkhwEGdkbmFtZVXOC6aqEANjuGOeUJRLcJhCLIGV5o9lbm9uY2VP60RZRbJzAjngsmy9Y9AtZXZhbHVlWD4N3pBb4BCVwtOuFoviTm+wF0X8Va/4ZV/sF3qKsyQF4VmgduNWo4KAH8O3iybTu2KMi7LJJBMC4jNVA70CvQ==
+    machines:
+      default:
+        provider: oasis1qp2ens0hsp7gh23wajxa4hpetkdek3swyyulyrmz
+        offer: playground_short
+        id: "0000000000000015"
