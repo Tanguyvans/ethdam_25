@@ -6,6 +6,7 @@ import svgr from 'vite-plugin-svgr'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/ethdam_25/',
   plugins: [react(), svgr(), nodePolyfills()],
   define: {
     APP_VERSION: JSON.stringify(process.env.npm_package_version),
