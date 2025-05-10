@@ -1,52 +1,46 @@
-name: Deploy Next.js site to Pages
+name: Build and Deploy Next.js to gh-pages (zerofail)
 
 on:
   push:
-    branches: ["main"] # Or your default branch
+    branches:
+      - main # Or your primary development branch
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write # Needed to push to the gh-pages branch
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Node
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # Or your preferred Node.js version
-          cache: "npm" # Or yarn, pnpm
-      - name: Install dependencies
-        run: npm install # Or yarn install, pnpm install
-      - name: List files before build # DEBUG STEP
-        run: ls -R .
-      - name: Build with Next.js
-        run: npm run build # Or yarn build, pnpm build
-      - name: Check build command exit code # DEBUG STEP
-        run: echo "Build command exit code: $?"
-      - name: List files after build to check for 'out' directory # DEBUG STEP
-        run: ls -R .
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./out
+          node-version: "20"
+          cache: "npm"
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Next.js application
+        # This runs `next build` and `next export` (due to output: 'export' in next.config.ts)
+        # The output will be in the 'out' directory.
+        run: npm run build
+
+      - name: Add .nojekyll file to out directory
+        run: touch ./out/.nojekyll
+        # This file tells GitHub Pages to not run the static site files through Jekyll,
+        # which is important for Next.js sites with folders starting with underscores (like _next).
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3 # Action to deploy to gh-pages
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out # The directory to publish (your Next.js build output)
+          # user_name: 'github-actions[bot]' # Optional: Custom committer name
+          # user_email: 'github-actions[bot]@users.noreply.github.com' # Optional: Custom committer email
+          # cname: your.custom.domain # Optional: if you have a custom domain
+          # publish_branch: gh-pages # This is the default, but can be explicit
