@@ -1,11 +1,11 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  output: "export", // This is critical
+// next.config.js or next.config.ts
+const nextConfig = {
+  output: 'export',
   images: {
     unoptimized: true,
   },
-  // any other configurations
+  basePath: '/ethdam_25', // Crucial for gh-pages subpath
+  // assetPrefix: '/ethdam_25/', // Often needed with basePath
 };
 
 export default nextConfig;
