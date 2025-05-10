@@ -40,6 +40,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         // Chain configuration using the defined chain
         defaultChain: sapphireTestnet,
         supportedChains: [sapphireTestnet],
+        // Configure embedded wallet creation
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets', // Create wallet for users who don't have one
+          },
+        },
       }}
     >
       {children}
