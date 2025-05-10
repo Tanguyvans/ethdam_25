@@ -99,15 +99,16 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a greeting message."""
     user = update.effective_user
     await update.message.reply_text(
-        f'👋 Hello {user.first_name}! How can I help you today?'
+        f'👋 Hello {user.first_name}! How can I help you today ?'
     )
+
 
 async def challenges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Fetches and displays all challenges from the smart contract."""
     try:
         # Fetch challenges from contract
         challenges = contract.functions.getAllChallenges().call()
-        
+
         if not challenges:
             await update.message.reply_text("No challenges found.")
             return
@@ -118,7 +119,7 @@ async def challenges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             challenge_id = challenge[0]
             name = challenge[1]
             creator = challenge[2]
-            
+
             # Format the message for each challenge
             message += f"*Challenge {challenge_id}*\n"
             message += f"Name: {name}\n"
@@ -134,21 +135,39 @@ async def challenges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             f"Error fetching challenges: {str(e)}"
         )
 
+
+
 async def notify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends a hello world message to the channel."""
+    """Fetches and displays the last challenge from the smart contract."""
     try:
-        # Send message to channel
-        await context.bot.send_message(
-            chat_id=CHANNEL_ID,
-            text="Hello World! 👋"
+        # Fetch challenges from contract
+        challenges = contract.functions.getAllChallenges().call()
+
+        if not challenges:
+            await update.message.reply_text("No challenges found.")
+            return
+
+        # Get the last challenge (most recent)
+        last_challenge = challenges[-1]
+        challenge_id = last_challenge[0]
+        name = last_challenge[1]
+        creator = last_challenge[2]
+
+        # Format the message for the last challenge
+        message = "📋 *Latest Challenge*\n\n"
+        message += f"*Challenge {challenge_id}*\n"
+        message += f"Name: {name}\n"
+        message += f"Creator: {creator[:6]}...{creator[-4:]}\n\n"
+        message += "🌐 [View Challenge Page](https://tanguyvans.github.io/ethdam_25/)"
+
+        # Send the formatted message
+        await update.message.reply_text(
+            message,
+            parse_mode='Markdown'
         )
-        
-        # Confirm to the user who triggered the command
-        await update.message.reply_text("✅ Message has been posted to the channel!")
-        
     except Exception as e:
         await update.message.reply_text(
-            f"Error: {str(e)}"
+            f"Error fetching the latest challenge: {str(e)}"
         )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
