@@ -1,18 +1,22 @@
-# Sample Hardhat Project
+create a .env file with:
+PRIVATE_KEY=0x..
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+avoir des faucet: https://faucet.testnet.oasis.dev/?__cf_chl_tk=yDWzS1kbZCHB7zA4Gc2poYqHOwYPz17i7yhDvdoqW30-1746798479-1.0.1.1-eWtoO9LqwSruobS56vg7jmnGotqHjJLt6lWeWDqHvMw
 
-Try running some of the following tasks:
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox dotenv
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
-```
+# Clean the artifacts
 
-npx hardhat full-vigil --network sapphire-testnet
-npx hardhat verify --network sapphire-testnet 0x6A7484e85Ce3aEca1fc6f16501505E39aBd505AA
+npx hardhat clean
 
-npx hardhat vigil-create-secret --network sapphire-testnet --contract 0x6A7484e85Ce3aEca1fc6f16501505E39aBd505AA --name "MyTestSecret" --longevity 3600 --secret 0x48656c6c6f576f726c64
+# Compile the contracts
+
+npx hardhat compile
+
+# Deploy the contract
+
+npx hardhat deploy-challenge-platform --network sapphireTestnet
+
+# verify the contract:
+
+npx hardhat verify --network sapphireTestnet ["contract address"]
