@@ -1,0 +1,9 @@
+source .env 
+
+npx hardhat clean
+npx hardhat compile
+
+npx hardhat deploy --network hardhat --show-stack-traces
+
+
+        npx hardhat vigil-create-secret --network <your-network> --contract <DEPLOYED_VIGIL_CONTRACT_ADDRESS> --name "MyTestSecret" --longevity 3600 --secret 0x48656c6c6f576f726c64 # "HelloWorld" in hex
