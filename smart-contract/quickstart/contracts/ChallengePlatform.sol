@@ -8,12 +8,23 @@ pragma solidity ^0.8.19;
 contract ChallengePlatform {
     uint256 private _nextChallengeId = 1; // Start challenge IDs from 1
 
+
+    struct Player {
+        address player;
+        bool isWinner;
+    }
+
     // Structure to represent a challenge
     struct Challenge {
         uint256 id; // Unique identifier for the challenge
         string name; // Name or title of the challenge
         address creator; // Who created this challenge
         // We could add participantCount here if needed, but keeping it minimal
+        uint256 start_date;
+        uint256 end_date;
+        uint256 pool;
+        uint256 stake_price;
+        Player[] players_suscribed;
     }
 
     // Array to store all challenges.
@@ -21,10 +32,7 @@ contract ChallengePlatform {
     // For a small number of challenges, this is okay. For many, consider events for off-chain indexing.
     Challenge[] public challenges;
 
-    // Mapping from challenge ID to a mapping of participant address to boolean (true if joined)
-    mapping(uint256 => mapping(address => bool)) public isParticipant;
-
-    // --- Events ---
+   // --- Events ---
     event ChallengeCreated(
         uint256 indexed challengeId,
         string name,
@@ -40,44 +48,101 @@ contract ChallengePlatform {
      * @dev Creates a new challenge.
      * @param _name The name/title of the challenge.
      */
-    function createChallenge(string memory _name) external {
+    function createChallenge(string memory _name, uint256 _stake_price, uint256 _start_date, uint256 _end_date) external {
         require(
-            bytes(_name).length > 0,
-            "SimpleChallengePlatform: Challenge name cannot be empty"
+            bytes(_name).length > 0 && _stake_price > 0 && _start_date > 0 && _end_date > 0,
+            "SimpleChallengePlatform: Challenge name, stake price and dates cannot be empty"
         );
 
         uint256 newChallengeId = _nextChallengeId; // Use our manual counter
         _nextChallengeId++; // Increment for the next challenge
 
         challenges.push(
-            Challenge({id: newChallengeId, name: _name, creator: msg.sender})
+            Challenge({
+                id: newChallengeId, 
+                name: _name, 
+                creator: msg.sender, 
+                start_date: _start_date, 
+                end_date: _end_date, 
+                pool: 0, 
+                stake_price: _stake_price, 
+                players_suscribed: new Player[](0)})
         );
 
         emit ChallengeCreated(newChallengeId, _name, msg.sender);
     }
 
     /**
+     * @dev Checks if a user has joined a specific challenge.
+     * @param _challengeId The ID of the challenge (1-based).
+     * @param _player The address of the user.
+     * @return True if the user has joined, false otherwise.
+     */
+    function hasJoined(
+        uint256 _challengeId,
+        address _player
+    ) external view returns (bool) {
+        require(
+            _challengeId > 0 && _challengeId < _nextChallengeId, // Validate against _nextChallengeId
+            "SimpleChallengePlatform: Challenge does not exist"
+        );
+
+        bool alreadyJoined = false;
+        for (uint i = 0; i < challenges[_challengeId].players_suscribed.length; i++) {
+            if (challenges[_challengeId].players_suscribed[i].player == _player) {
+                alreadyJoined = true;
+                break;
+            }
+        }
+
+        return alreadyJoined;
+    }
+
+    /**
      * @dev Allows a user to join an existing challenge.
      * @param _challengeId The ID of the challenge to join (1-based).
      */
-    function joinChallenge(uint256 _challengeId) external {
+    function joinChallenge(uint256 _challengeId, address _player_address) external {
         // Validate the challengeId against the number of created challenges
         // _challengeId is 1-based, _nextChallengeId is the ID for the *next* potential challenge
         require(
             _challengeId > 0 && _challengeId < _nextChallengeId,
             "SimpleChallengePlatform: Challenge does not exist"
         );
+        
+        // Check if player already joined
+        require(!this.hasJoined(_challengeId, _player_address), 
+            "SimpleChallengePlatform: Already joined this challenge");
+
         require(
-            !isParticipant[_challengeId][msg.sender],
-            "SimpleChallengePlatform: Already joined this challenge"
+            block.timestamp < challenges[_challengeId].start_date,
+            "SimpleChallengePlatform: Challenge did not start yet"
+        );
+        require(
+            block.timestamp > challenges[_challengeId].end_date,
+            "SimpleChallengePlatform: Challenge is closed"
         );
 
-        isParticipant[_challengeId][msg.sender] = true;
-        // Note: We are not incrementing a participantCount on the Challenge struct itself in this version
-        // to keep the struct minimal. isParticipant mapping handles the join status.
+        Player memory player = Player({player: _player_address, isWinner: false});
+        challenges[_challengeId].players_suscribed.push(player);
+        challenges[_challengeId].pool += challenges[_challengeId].stake_price;
 
         emit ChallengeJoined(_challengeId, msg.sender);
     }
+
+    function setWinner(uint256 _challengeId, address _player) external {
+        require(
+            challenges[_challengeId].creator == msg.sender,
+            "SimpleChallengePlatform: Only the creator can set the winner"
+        );  
+
+        for (uint i = 0; i < challenges[_challengeId].players_suscribed.length; i++) {
+            if (challenges[_challengeId].players_suscribed[i].player == _player) {
+                challenges[_challengeId].players_suscribed[i].isWinner = true;
+            }
+        }
+    }
+
 
     /**
      * @dev Retrieves all created challenges.
@@ -108,19 +173,24 @@ contract ChallengePlatform {
     }
 
     /**
-     * @dev Checks if a user has joined a specific challenge.
+     * @dev Computes the winner'price of a specific challenge.
      * @param _challengeId The ID of the challenge (1-based).
-     * @param _user The address of the user.
-     * @return True if the user has joined, false otherwise.
+     * @return The price of the winner.
      */
-    function hasJoined(
-        uint256 _challengeId,
-        address _user
-    ) external view returns (bool) {
+    function computePrice(
+        uint256 _challengeId
+    ) external view returns (uint256) {
         require(
             _challengeId > 0 && _challengeId < _nextChallengeId, // Validate against _nextChallengeId
             "SimpleChallengePlatform: Challenge does not exist"
         );
-        return isParticipant[_challengeId][_user];
+        uint256 nb_winner = 0;
+        for (uint i = 0; i < challenges[_challengeId].players_suscribed.length; i++) {
+            if (challenges[_challengeId].players_suscribed[i].isWinner) {
+                nb_winner++;
+            }
+        }
+        uint256 price = challenges[_challengeId].pool / nb_winner;
+        return price;
     }
 }
