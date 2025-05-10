@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
-        loginMethods: ['wallet'],
+        loginMethods: ['email', 'wallet'],
         appearance: {
           theme: 'light',
           accentColor: '#3B82F6',
@@ -40,6 +40,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         // Chain configuration using the defined chain
         defaultChain: sapphireTestnet,
         supportedChains: [sapphireTestnet],
+        // Configure embedded wallet creation
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets', // Create wallet for users who don't have one
+          },
+        },
       }}
     >
       {children}
