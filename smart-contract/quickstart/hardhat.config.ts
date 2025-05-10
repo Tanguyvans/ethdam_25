@@ -30,14 +30,12 @@ const config: HardhatUserConfig = {
       accounts: [PRIVATE_KEY],
     },
   },
-  etherscan: {
-    apiKey: {
-      sapphireTestnet: "not-needed"
+    etherscan: {
+      enabled: false
+    },
+    sourcify: {
+      enabled: true
     }
-  },
-  sourcify: {
-    enabled: true
-  }
 };
 
 export default config;
