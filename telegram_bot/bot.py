@@ -138,7 +138,7 @@ async def challenges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 async def notify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Fetches and displays the last challenge from the smart contract."""
+    """Fetches the last challenge and sends it to both the channel and user."""
     try:
         # Fetch challenges from contract
         challenges = contract.functions.getAllChallenges().call()
@@ -160,15 +160,21 @@ async def notify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         message += f"Creator: {creator[:6]}...{creator[-4:]}\n\n"
         message += "🌐 [View Challenge Page](https://tanguyvans.github.io/ethdam_25/)"
 
-        # Send the formatted message
-        await update.message.reply_text(
-            message,
+        # Send to channel
+        await context.bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=message,
             parse_mode='Markdown'
         )
+
+        # Confirm to the user who triggered the command
+        await update.message.reply_text("✅ Latest challenge has been posted to the channel!")
+
     except Exception as e:
         await update.message.reply_text(
-            f"Error fetching the latest challenge: {str(e)}"
+            f"Error: {str(e)}"
         )
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a welcome message when the /start command is issued."""
