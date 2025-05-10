@@ -92,6 +92,9 @@ CONTRACT_ABI = [
 # Initialize contract
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
+# Your channel ID (replace with your actual channel ID)
+CHANNEL_ID = "@zerofail_ethdam"  # Replace this with your channel username or ID
+
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a greeting message."""
     user = update.effective_user
@@ -131,14 +134,29 @@ async def challenges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             f"Error fetching challenges: {str(e)}"
         )
 
+async def notify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends a hello world message to the channel."""
+    try:
+        # Send message to channel
+        await context.bot.send_message(
+            chat_id=CHANNEL_ID,
+            text="Hello World! 👋"
+        )
+        
+        # Confirm to the user who triggered the command
+        await update.message.reply_text("✅ Message has been posted to the channel!")
+        
+    except Exception as e:
+        await update.message.reply_text(
+            f"Error: {str(e)}"
+        )
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a welcome message when the /start command is issued."""
-    user = update.effective_user
     await update.message.reply_text(
-        f'Hi {user.first_name}! Welcome to the Challenge Platform Bot.\n\n'
+        'Welcome to the Challenge Platform Bot.\n\n'
         'Available commands:\n'
-        '/hello - Get a greeting\n'
-        '/challenges - View all current challenges\n'
+        '/notify - Send hello world to the channel\n'
         '/start - Show this help message'
     )
 
@@ -149,6 +167,7 @@ app = ApplicationBuilder().token("7676994620:AAGlEsmwFa6dPo8HPCXgWWYSJrTd_0JyiJQ
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("challenges", challenges))
+app.add_handler(CommandHandler("notify", notify))
 
 # Run the bot
 app.run_polling()
