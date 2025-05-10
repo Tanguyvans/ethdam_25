@@ -11,6 +11,15 @@ app = Flask(__name__)
 
 client = OpenAI()  # uses OPENAI_API_KEY from env automatically
 
+@app.route('/')
+def home():
+    return jsonify({
+        'message': 'Welcome to the Challenge Evaluation API',
+        'endpoints': {
+            '/eval-challenge': 'POST - Evaluate a GitHub challenge'
+        }
+    })
+
 def ask_openai(prompt: str) -> str:
     """Send prompt to OpenAI API and return the response."""
     try:
@@ -76,4 +85,4 @@ def eval_challenge():
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
