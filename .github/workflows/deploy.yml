@@ -12,6 +12,8 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,6 +31,8 @@ jobs:
         # This runs `next build` and `next export` (due to output: 'export' in next.config.ts)
         # The output will be in the 'out' directory.
         run: npm run build
+        env:
+          NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
 
       - name: Add .nojekyll file to out directory
         run: touch ./out/.nojekyll
