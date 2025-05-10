@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-// import Image from "next/image"; // Image component is not used, can be removed
 import { usePrivy } from '@privy-io/react-auth';
 
 interface Challenge {
