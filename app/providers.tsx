@@ -1,17 +1,45 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
+import { defineChain } from 'viem';
+
+// Define the Sapphire testnet chain
+const sapphireTestnet = defineChain({
+  id: 23295,
+  name: 'Sapphire Testnet',
+  network: 'sapphire-testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'ROSE',
+    symbol: 'ROSE'
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://testnet.sapphire.oasis.dev'],
+      webSocket: ['wss://testnet.sapphire.oasis.dev']
+    }
+  },
+  blockExplorers: {
+    default: {
+      name: 'Sapphire Explorer',
+      url: 'https://testnet.explorer.sapphire.oasis.dev'
+    }
+  }
+});
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
-      appId={'cmaeh94f4004dl40mikstuvnr'}
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
         loginMethods: ['wallet'],
         appearance: {
           theme: 'light',
           accentColor: '#3B82F6',
         },
+        // Chain configuration using the defined chain
+        defaultChain: sapphireTestnet,
+        supportedChains: [sapphireTestnet],
       }}
     >
       {children}

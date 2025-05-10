@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ethers, BrowserProvider, Contract } from 'ethers';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
 import { challengePlatformABI, challengePlatformAddress } from './contracts/challengePlatform';
 
 // Interface matching the contract's Challenge struct
@@ -12,36 +14,35 @@ interface ContractChallenge {
 }
 
 export default function Home() {
-  const [account, setAccount] = useState<string | null>(null);
+  const router = useRouter();
+  const { login, logout, authenticated, ready: privyReady } = usePrivy();
+  const { wallets, ready: walletsReady } = useWallets();
   const [challengesList, setChallengesList] = useState<ContractChallenge[]>([]);
   const [isLoadingChallenges, setIsLoadingChallenges] = useState(false);
   const [newChallengeName, setNewChallengeName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isProcessingTx, setIsProcessingTx] = useState(false);
 
-  const connectWallet = async () => {
-    try {
-      if (typeof window.ethereum !== 'undefined') {
-        const accounts = await window.ethereum.request({ 
-          method: 'eth_requestAccounts' 
-        });
-        setAccount(accounts[0]);
-      } else {
-        setError("Please install MetaMask!");
-      }
-    } catch (e) {
-      console.error("Error connecting wallet:", e);
-      setError("Failed to connect wallet");
+  // Get the first connected wallet
+  const wallet = wallets[0];
+
+  console.log(wallet);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (privyReady && !authenticated) {
+      router.push('/login');
     }
-  };
+  }, [privyReady, authenticated, router]);
 
   // Initialize contract and fetch challenges
   useEffect(() => {
     const initializeContract = async () => {
-      if (account && typeof window !== 'undefined' && window.ethereum) {
+      if (authenticated && wallet) {
         try {
-          const provider = new BrowserProvider(window.ethereum);
-          const signer = await provider.getSigner();
+          const provider = await wallet.getEthereumProvider();
+          const ethersProvider = new BrowserProvider(provider);
+          const signer = await ethersProvider.getSigner();
           const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
           await fetchChallenges(contract);
         } catch (e) {
@@ -51,26 +52,7 @@ export default function Home() {
       }
     };
     initializeContract();
-  }, [account]);
-
-  // Add event listeners for account changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length === 0) {
-          setAccount(null);
-        } else {
-          setAccount(accounts[0]);
-        }
-      };
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-      return () => {
-        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
-      };
-    }
-  }, []);
+  }, [authenticated, wallet]);
 
   const fetchChallenges = async (contract: Contract) => {
     setIsLoadingChallenges(true);
@@ -98,9 +80,10 @@ export default function Home() {
     setIsProcessingTx(true);
     setError(null);
     try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
+      if (authenticated && wallet) {
+        const provider = await wallet.getEthereumProvider();
+        const ethersProvider = new BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
         const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
         
         const tx = await contract.createChallenge(newChallengeName.trim());
@@ -120,9 +103,10 @@ export default function Home() {
     setIsProcessingTx(true);
     setError(null);
     try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
+      if (authenticated && wallet) {
+        const provider = await wallet.getEthereumProvider();
+        const ethersProvider = new BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
         const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
         
         const tx = await contract.joinChallenge(challengeId);
@@ -137,37 +121,39 @@ export default function Home() {
     }
   };
 
-  if (!account) {
+  // Loading state
+  if (!privyReady || !walletsReady) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4 text-white">
-        <h1 className="text-4xl font-bold mb-8">Challenge Platform</h1>
-        <button
-          onClick={connectWallet}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold"
-        >
-          Connect Wallet
-        </button>
-        {error && (
-          <p className="mt-4 text-red-400">{error}</p>
-        )}
+        <div className="animate-pulse">Loading wallets...</div>
       </div>
     );
+  }
+
+  // Not authenticated - redirect to login
+  if (!authenticated) {
+    return null; // The useEffect will handle the redirect
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 dark:from-slate-900 dark:via-gray-900 dark:to-slate-800 p-6 sm:p-10 selection:bg-sky-500 selection:text-white">
       <div className="max-w-5xl mx-auto">
         <header className="flex justify-between items-center mb-12 py-4">
-           <div className="text-2xl font-bold text-slate-700 dark:text-slate-200">
-             Challenge<span className="text-blue-500">Platform</span>
-           </div>
-          {account && (
+          <div className="text-2xl font-bold text-slate-700 dark:text-slate-200">
+            Challenge<span className="text-blue-500">Platform</span>
+          </div>
+          {wallet && (
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline bg-white dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-mono shadow-sm border border-slate-200 dark:border-slate-700">
-                {account.slice(0, 6)}...{account.slice(-4)}
-              </span>
+              <div className="flex flex-col items-end">
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  Connected Wallet
+                </span>
+                <span className="bg-white dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-mono shadow-sm border border-slate-200 dark:border-slate-700">
+                  {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                </span>
+              </div>
               <button
-                onClick={() => setAccount(null)}
+                onClick={logout}
                 className="bg-pink-500 hover:bg-pink-600 focus:ring-4 focus:ring-pink-300 dark:focus:ring-pink-700 text-white px-4 py-2 rounded-lg transition-all duration-200 ease-in-out text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
                 disabled={isProcessingTx}
               >
@@ -184,7 +170,7 @@ export default function Home() {
           </div>
         )}
 
-        {account && (
+        {wallet && (
           <div className="mb-10 p-6 bg-white dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">Create New Challenge</h2>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -224,12 +210,12 @@ export default function Home() {
           </div>
         )}
 
-        {!isLoadingChallenges && challengesList.length === 0 && account && (
+        {!isLoadingChallenges && challengesList.length === 0 && wallet && (
           <p className="text-center text-slate-500 dark:text-slate-400 text-lg">
             No challenges found. Be the first to create one!
           </p>
         )}
-         {!isLoadingChallenges && !account && (
+         {!isLoadingChallenges && !wallet && (
           <p className="text-center text-slate-500 dark:text-slate-400 text-lg">
             Please connect your wallet to see and create challenges.
           </p>
@@ -260,7 +246,7 @@ export default function Home() {
                 <button
                   onClick={() => handleJoinChallenge(challenge.id)}
                   className="w-full mt-auto bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 text-white px-6 py-3 rounded-lg transition-all duration-200 ease-in-out font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
-                  disabled={!account || isProcessingTx} // Disable if not connected or processing
+                  disabled={!wallet || isProcessingTx} // Disable if not connected or processing
                 >
                   {isProcessingTx ? 'Joining...' : 'Join Challenge'}
                 </button>
