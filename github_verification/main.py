@@ -141,7 +141,8 @@ def evaluate_challenge(
     end_date: str,
     target_author: str,
     challenge_description: str,
-    github_token: str = None
+    github_token: str = None,
+    llm_function: callable = ask_ollama
 ) -> dict:
     """
     Evaluate a coding challenge based on GitHub commits.
@@ -153,6 +154,7 @@ def evaluate_challenge(
         target_author: GitHub username to filter commits
         challenge_description: Description of the coding challenge
         github_token: GitHub API token (optional if set in .env)
+        llm_function: Function to use for LLM calls (defaults to ask_ollama)
 
     Returns:
         dict: Contains summary, evaluation, score, and statistics
@@ -208,7 +210,7 @@ def evaluate_challenge(
     stats = calculate_commit_stats(commit_data)
 
     prompt = format_prompt(challenge_description, commit_data, start_date, end_date, stats)
-    response = ask_ollama(prompt)
+    response = llm_function(prompt)
     result = extract_summary(response)
 
     # Validation supplémentaire pour s'assurer que le score est cohérent
