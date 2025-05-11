@@ -6,11 +6,16 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { challengePlatformABI, challengePlatformAddress } from './contracts/challengePlatform';
 
-// Interface matching the contract's Challenge struct
+// Updated interface to match the new contract Challenge struct
 interface ContractChallenge {
-  id: bigint; // uint256 maps to bigint
+  id: bigint;
   name: string;
-  creator: string; // address maps to string
+  creator: string;
+  start_date: bigint;
+  end_date: bigint;
+  pool: bigint;
+  playerCount: bigint;
+  isSettled: boolean;
 }
 
 export default function Home() {
@@ -22,6 +27,9 @@ export default function Home() {
   const [newChallengeName, setNewChallengeName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isProcessingTx, setIsProcessingTx] = useState(false);
+  const [winnerAddress, setWinnerAddress] = useState('');
+  const [participantAddress, setParticipantAddress] = useState('');
+  const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
 
   // Get the first connected wallet
   const wallet = wallets[0];
@@ -59,11 +67,27 @@ export default function Home() {
     setError(null);
     try {
       const fetchedChallenges = await contract.getAllChallenges();
-      setChallengesList(fetchedChallenges.map((c: any) => ({
+      const challenges = fetchedChallenges.map((c: any) => ({
         id: BigInt(c.id),
         name: c.name,
         creator: c.creator,
-      })));
+        start_date: BigInt(c.start_date),
+        end_date: BigInt(c.end_date),
+        pool: BigInt(c.pool),
+        playerCount: BigInt(c.playerCount),
+        isSettled: c.isSettled,
+      }));
+      setChallengesList(challenges);
+
+      // Check joined status for each challenge
+      const joined = new Set<string>();
+      for (const challenge of challenges) {
+        const hasJoined = await checkIfJoined(contract, challenge.id);
+        if (hasJoined) {
+          joined.add(challenge.id.toString());
+        }
+      }
+      setJoinedChallenges(joined);
     } catch (e) {
       console.error("Error fetching challenges:", e);
       setError("Failed to fetch challenges.");
@@ -86,7 +110,16 @@ export default function Home() {
         const signer = await ethersProvider.getSigner();
         const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
         
-        const tx = await contract.createChallenge(newChallengeName.trim());
+        // Get current timestamp and set dates
+        const now = Math.floor(Date.now() / 1000);
+        const startDate = now + 3600; // Start in 1 hour
+        const endDate = now + 86400; // End in 24 hours
+        
+        const tx = await contract.createChallenge(
+          newChallengeName.trim(),
+          startDate,
+          endDate
+        );
         await tx.wait();
         setNewChallengeName('');
         await fetchChallenges(contract);
@@ -109,8 +142,14 @@ export default function Home() {
         const signer = await ethersProvider.getSigner();
         const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
         
-        const tx = await contract.joinChallenge(challengeId);
+        const tx = await contract.joinChallenge(challengeId, {
+          value: ethers.parseEther("1.0") // 1 ROSE
+        });
         await tx.wait();
+        
+        // Update joined status
+        setJoinedChallenges(prev => new Set([...prev, challengeId.toString()]));
+        
         alert(`Successfully joined challenge ID: ${challengeId.toString()}!`);
       }
     } catch (e: any) {
@@ -118,6 +157,62 @@ export default function Home() {
       setError(`Failed to join challenge: ${e.message || 'Unknown error'}`);
     } finally {
       setIsProcessingTx(false);
+    }
+  };
+
+  const handleMarkPassed = async (challengeId: bigint, participantAddress: string) => {
+    setIsProcessingTx(true);
+    setError(null);
+    try {
+      if (authenticated && wallet) {
+        const provider = await wallet.getEthereumProvider();
+        const ethersProvider = new BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
+        
+        const tx = await contract.markChallengePassed(challengeId, participantAddress);
+        await tx.wait();
+        alert(`Successfully marked participant as passed!`);
+      }
+    } catch (e: any) {
+      console.error(`Error marking participant as passed:`, e);
+      setError(`Failed to mark participant as passed: ${e.message || 'Unknown error'}`);
+    } finally {
+      setIsProcessingTx(false);
+    }
+  };
+
+  const handleSettleChallenge = async (challengeId: bigint) => {
+    setIsProcessingTx(true);
+    setError(null);
+    try {
+      if (authenticated && wallet) {
+        const provider = await wallet.getEthereumProvider();
+        const ethersProvider = new BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
+        
+        const tx = await contract.settleChallenge(challengeId);
+        await tx.wait();
+        alert(`Successfully settled challenge ID: ${challengeId.toString()}!`);
+        await fetchChallenges(contract);
+      }
+    } catch (e: any) {
+      console.error(`Error settling challenge ${challengeId.toString()}:`, e);
+      setError(`Failed to settle challenge: ${e.message || 'Unknown error'}`);
+    } finally {
+      setIsProcessingTx(false);
+    }
+  };
+
+  const checkIfJoined = async (contract: Contract, challengeId: bigint) => {
+    if (!wallet) return false;
+    try {
+      const hasJoined = await contract.hasJoined(challengeId, wallet.address);
+      return hasJoined;
+    } catch (e) {
+      console.error("Error checking if joined:", e);
+      return false;
     }
   };
 
@@ -225,31 +320,83 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {challengesList.map((challenge) => (
             <div
-              key={challenge.id.toString()} // Use bigint id as key
+              key={challenge.id.toString()}
               className="bg-white dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-xl hover:shadow-2xl p-6 group transform transition-all duration-300 ease-out hover:-translate-y-1 border border-slate-200 dark:border-slate-700/50"
             >
               <div className="flex flex-col h-full">
                 <div className="flex-grow">
+                  {challenge.isSettled && (
+                    <div className="mb-3">
+                      <span className="px-3 py-1 text-sm font-semibold text-white bg-green-500 rounded-full">
+                        Settled
+                      </span>
+                    </div>
+                  )}
+                  {joinedChallenges.has(challenge.id.toString()) && (
+                    <div className="mb-3">
+                      <span className="px-3 py-1 text-sm font-semibold text-white bg-blue-500 rounded-full">
+                        Joined
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-start mb-3">
                     <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {challenge.name} {/* Use name from contract */}
+                      {challenge.name}
                     </h2>
                     <span className="text-xs font-mono px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                       ID: {challenge.id.toString()}
                     </span>
                   </div>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-1">
-                    Creator: <span className="font-mono text-xs">{challenge.creator}</span>
-                  </p>
-                  {/* Add more details if needed, e.g., number of participants if you fetch that */}
+                  <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                    <p>Creator: <span className="font-mono text-xs">{challenge.creator}</span></p>
+                    <p>Pool: {ethers.formatEther(challenge.pool)} ROSE</p>
+                    <p>Players: {challenge.playerCount.toString()}</p>
+                    <p>Start: {new Date(Number(challenge.start_date) * 1000).toLocaleString()}</p>
+                    <p>End: {new Date(Number(challenge.end_date) * 1000).toLocaleString()}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleJoinChallenge(challenge.id)}
-                  className="w-full mt-auto bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 text-white px-6 py-3 rounded-lg transition-all duration-200 ease-in-out font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
-                  disabled={!wallet || isProcessingTx} // Disable if not connected or processing
-                >
-                  {isProcessingTx ? 'Joining...' : 'Join Challenge'}
-                </button>
+                {!challenge.isSettled && (
+                  <>
+                    <button
+                      onClick={() => handleJoinChallenge(challenge.id)}
+                      className="w-full mt-4 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 text-white px-6 py-3 rounded-lg transition-all duration-200 ease-in-out font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
+                      disabled={!wallet || isProcessingTx || joinedChallenges.has(challenge.id.toString())}
+                    >
+                      {isProcessingTx ? 'Joining...' : 
+                       joinedChallenges.has(challenge.id.toString()) ? 'Already Joined' : 
+                       'Join Challenge (1 ROSE)'}
+                    </button>
+                    
+                    {wallet && challenge.creator.toLowerCase() === wallet.address.toLowerCase() && (
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Participant's address"
+                            className="w-full px-4 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                            onChange={(e) => setParticipantAddress(e.target.value)}
+                            disabled={isProcessingTx}
+                          />
+                          <button
+                            onClick={() => handleMarkPassed(challenge.id, participantAddress)}
+                            className="w-full bg-yellow-500 hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 dark:focus:ring-yellow-800 text-white px-6 py-3 rounded-lg transition-all duration-200 ease-in-out font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
+                            disabled={!wallet || isProcessingTx || !participantAddress}
+                          >
+                            {isProcessingTx ? 'Processing...' : 'Mark as Passed'}
+                          </button>
+                        </div>
+                        
+                        <button
+                          onClick={() => handleSettleChallenge(challenge.id)}
+                          className="w-full bg-purple-500 hover:bg-purple-600 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 text-white px-6 py-3 rounded-lg transition-all duration-200 ease-in-out font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
+                          disabled={!wallet || isProcessingTx}
+                        >
+                          {isProcessingTx ? 'Settling...' : 'Settle Challenge'}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           ))}
