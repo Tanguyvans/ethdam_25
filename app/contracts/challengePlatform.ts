@@ -94,6 +94,31 @@ export const challengePlatformABI = [
     "anonymous": false
   },
   {
+    "name": "RewardClaimed",
+    "type": "event",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "name": "STAKE_AMOUNT",
     "type": "function",
     "inputs": [],
@@ -157,16 +182,6 @@ export const challengePlatformABI = [
         "internalType": "address"
       },
       {
-        "name": "start_date",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "end_date",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "pool",
         "type": "uint256",
         "internalType": "uint256"
@@ -185,85 +200,7 @@ export const challengePlatformABI = [
     "stateMutability": "view"
   },
   {
-    "name": "createChallenge",
-    "type": "function",
-    "inputs": [
-      {
-        "name": "_name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "_start_date",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_end_date",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "name": "getAllChallenges",
-    "type": "function",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple[]",
-        "components": [
-          {
-            "name": "id",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "creator",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "start_date",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "end_date",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "pool",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "playerCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "isSettled",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ],
-        "internalType": "struct ChallengePlatform.Challenge[]"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "name": "getChallengeById",
+    "name": "claimRewards",
     "type": "function",
     "inputs": [
       {
@@ -272,56 +209,21 @@ export const challengePlatformABI = [
         "internalType": "uint256"
       }
     ],
-    "outputs": [
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "name": "createChallenge",
+    "type": "function",
+    "inputs": [
       {
-        "name": "",
-        "type": "tuple",
-        "components": [
-          {
-            "name": "id",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "creator",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "start_date",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "end_date",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "pool",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "playerCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "isSettled",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ],
-        "internalType": "struct ChallengePlatform.Challenge"
+        "name": "_name",
+        "type": "string",
+        "internalType": "string"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "name": "getChallengeState",
@@ -355,14 +257,33 @@ export const challengePlatformABI = [
         "internalType": "uint256"
       },
       {
-        "name": "passedCount",
+        "name": "winnerCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "hasClaimed",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "participants",
-        "type": "address[]",
-        "internalType": "address[]"
+        "name": "_player",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -392,7 +313,7 @@ export const challengePlatformABI = [
     "stateMutability": "view"
   },
   {
-    "name": "hasPassedChallenge",
+    "name": "hasPassed",
     "type": "function",
     "inputs": [
       {
@@ -401,28 +322,9 @@ export const challengePlatformABI = [
         "internalType": "uint256"
       },
       {
-        "name": "_participant",
+        "name": "_player",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "name": "isChallengeSettled",
-    "type": "function",
-    "inputs": [
-      {
-        "name": "_challengeId",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -503,6 +405,11 @@ export const challengePlatformABI = [
         "name": "hasJoined",
         "type": "bool",
         "internalType": "bool"
+      },
+      {
+        "name": "hasClaimed",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -519,8 +426,53 @@ export const challengePlatformABI = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "name": "getAllChallenges",
+    "type": "function",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "creator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "pool",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "playerCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isSettled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "internalType": "struct ChallengePlatform.Challenge[]"
+      }
+    ],
+    "stateMutability": "view"
   }
 ] as const;
   
   // 2. Replace with the actual deployed contract address from the explorer/deployment logs
-  export const challengePlatformAddress = "0x0c32b3e35175253BD20EbC0d9bccdd6BCeEbE38E"; // Your verified address
+  export const challengePlatformAddress = "0x22A7d8Bc411dd82a15dF44Eb0543a961639d0201"; // Your verified address

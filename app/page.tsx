@@ -11,8 +11,6 @@ interface ContractChallenge {
   id: bigint;
   name: string;
   creator: string;
-  start_date: bigint;
-  end_date: bigint;
   pool: bigint;
   playerCount: bigint;
   isSettled: boolean;
@@ -30,6 +28,8 @@ export default function Home() {
   const [winnerAddress, setWinnerAddress] = useState('');
   const [participantAddress, setParticipantAddress] = useState('');
   const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
+  const [passedChallenges, setPassedChallenges] = useState<Set<string>>(new Set());
+  const [claimedChallenges, setClaimedChallenges] = useState<Set<string>>(new Set());
 
   // Get the first connected wallet
   const wallet = wallets[0];
@@ -66,31 +66,47 @@ export default function Home() {
     setIsLoadingChallenges(true);
     setError(null);
     try {
+      console.log("Fetching challenges...");
       const fetchedChallenges = await contract.getAllChallenges();
+      console.log("Fetched challenges:", fetchedChallenges);
+      
       const challenges = fetchedChallenges.map((c: any) => ({
         id: BigInt(c.id),
         name: c.name,
         creator: c.creator,
-        start_date: BigInt(c.start_date),
-        end_date: BigInt(c.end_date),
         pool: BigInt(c.pool),
         playerCount: BigInt(c.playerCount),
         isSettled: c.isSettled,
       }));
       setChallengesList(challenges);
 
-      // Check joined status for each challenge
+      // Check joined, passed, and claimed status for each challenge
       const joined = new Set<string>();
+      const passed = new Set<string>();
+      const claimed = new Set<string>();
+      
       for (const challenge of challenges) {
-        const hasJoined = await checkIfJoined(contract, challenge.id);
-        if (hasJoined) {
-          joined.add(challenge.id.toString());
+        if (wallet) {
+          try {
+            const hasJoined = await contract.hasJoined(challenge.id, wallet.address);
+            const hasPassed = await contract.hasPassed(challenge.id, wallet.address);
+            const hasClaimed = await contract.hasClaimed(challenge.id, wallet.address);
+            
+            if (hasJoined) joined.add(challenge.id.toString());
+            if (hasPassed) passed.add(challenge.id.toString());
+            if (hasClaimed) claimed.add(challenge.id.toString());
+          } catch (e) {
+            console.error(`Error checking status for challenge ${challenge.id}:`, e);
+          }
         }
       }
+      
       setJoinedChallenges(joined);
+      setPassedChallenges(passed);
+      setClaimedChallenges(claimed);
     } catch (e) {
       console.error("Error fetching challenges:", e);
-      setError("Failed to fetch challenges.");
+      setError(`Failed to fetch challenges: ${e instanceof Error ? e.message : 'Unknown error'}`);
     } finally {
       setIsLoadingChallenges(false);
     }
@@ -110,15 +126,8 @@ export default function Home() {
         const signer = await ethersProvider.getSigner();
         const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
         
-        // Get current timestamp and set dates
-        const now = Math.floor(Date.now() / 1000);
-        const startDate = now + 3600; // Start in 1 hour
-        const endDate = now + 86400; // End in 24 hours
-        
         const tx = await contract.createChallenge(
-          newChallengeName.trim(),
-          startDate,
-          endDate
+          newChallengeName.trim()
         );
         await tx.wait();
         setNewChallengeName('');
@@ -200,6 +209,32 @@ export default function Home() {
     } catch (e: any) {
       console.error(`Error settling challenge ${challengeId.toString()}:`, e);
       setError(`Failed to settle challenge: ${e.message || 'Unknown error'}`);
+    } finally {
+      setIsProcessingTx(false);
+    }
+  };
+
+  const handleClaimRewards = async (challengeId: bigint) => {
+    setIsProcessingTx(true);
+    setError(null);
+    try {
+      if (authenticated && wallet) {
+        const provider = await wallet.getEthereumProvider();
+        const ethersProvider = new BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = new Contract(challengePlatformAddress, challengePlatformABI, signer);
+        
+        const tx = await contract.claimRewards(challengeId);
+        await tx.wait();
+        
+        // Update claimed status
+        setClaimedChallenges(prev => new Set([...prev, challengeId.toString()]));
+        
+        alert(`Successfully claimed rewards for challenge ID: ${challengeId.toString()}!`);
+      }
+    } catch (e: any) {
+      console.error(`Error claiming rewards:`, e);
+      setError(`Failed to claim rewards: ${e.message || 'Unknown error'}`);
     } finally {
       setIsProcessingTx(false);
     }
@@ -339,6 +374,13 @@ export default function Home() {
                       </span>
                     </div>
                   )}
+                  {passedChallenges.has(challenge.id.toString()) && (
+                    <div className="mb-3">
+                      <span className="px-3 py-1 text-sm font-semibold text-white bg-yellow-500 rounded-full">
+                        Passed
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-start mb-3">
                     <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {challenge.name}
@@ -351,8 +393,6 @@ export default function Home() {
                     <p>Creator: <span className="font-mono text-xs">{challenge.creator}</span></p>
                     <p>Pool: {ethers.formatEther(challenge.pool)} ROSE</p>
                     <p>Players: {challenge.playerCount.toString()}</p>
-                    <p>Start: {new Date(Number(challenge.start_date) * 1000).toLocaleString()}</p>
-                    <p>End: {new Date(Number(challenge.end_date) * 1000).toLocaleString()}</p>
                   </div>
                 </div>
                 {!challenge.isSettled && (
@@ -396,6 +436,16 @@ export default function Home() {
                       </div>
                     )}
                   </>
+                )}
+                
+                {challenge.isSettled && passedChallenges.has(challenge.id.toString()) && !claimedChallenges.has(challenge.id.toString()) && (
+                  <button
+                    onClick={() => handleClaimRewards(challenge.id)}
+                    className="w-full mt-4 bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 text-white px-6 py-3 rounded-lg transition-all duration-200 ease-in-out font-semibold shadow-md hover:shadow-lg disabled:opacity-50"
+                    disabled={!wallet || isProcessingTx}
+                  >
+                    {isProcessingTx ? 'Claiming...' : 'Claim Rewards'}
+                  </button>
                 )}
               </div>
             </div>
