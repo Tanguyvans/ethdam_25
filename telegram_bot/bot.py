@@ -4,6 +4,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from web3 import Web3
 from eth_abi import decode
+import requests
+import json
 
 load_dotenv()
 
@@ -185,6 +187,58 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         '/start - Show this help message'
     )
 
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Verifies a GitHub repository against the challenge requirements."""
+    try:
+        # Check if repository parameter is provided
+        if not context.args:
+            await update.message.reply_text(
+                "Please provide a GitHub repository in the format: username/repo\n"
+                "Example: /verify username/repo"
+            )
+            return
+
+        repo = context.args[0]
+
+        # Prepare the request data
+        data = {
+            "repo_name": repo,
+            "start_date": "2024-09-20",  # You might want to make these configurable
+            "end_date": "2024-09-24",
+            "target_author": repo.split('/')[0],
+            "challenge_description": "Complete the challenge requirements"
+        }
+
+        # Make request to verification API
+        response = requests.post(
+            "http://127.0.0.1:5000/eval-challenge",
+
+            json=data
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            if result['success']:
+                if result['is_challenge_successful']:
+                    await update.message.reply_text(
+                        f"🏆 Challenge Successful!\n\n"
+                        f"Score: {result['score']}/10\n"
+                        f"Summary: {result['summary']}"
+                    )
+                else:
+                    await update.message.reply_text(
+                        f"❌ Challenge Failed\n\n"
+                        f"Score: {result['score']}/10\n"
+                        f"Summary: {result['summary']}"
+                    )
+            else:
+                await update.message.reply_text(f"Error: {result.get('error', 'Unknown error')}")
+        else:
+            await update.message.reply_text("Error connecting to verification service")
+
+    except Exception as e:
+        await update.message.reply_text(f"Error: {str(e)}")
+
 # Initialize the bot
 app = ApplicationBuilder().token("7676994620:AAGlEsmwFa6dPo8HPCXgWWYSJrTd_0JyiJQ").build()
 
@@ -193,6 +247,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("challenges", challenges))
 app.add_handler(CommandHandler("notify", notify))
+app.add_handler(CommandHandler("verify", verify))
 
 # Run the bot
 app.run_polling()
