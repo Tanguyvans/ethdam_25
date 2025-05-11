@@ -13,82 +13,480 @@ load_dotenv()
 w3 = Web3(Web3.HTTPProvider('https://testnet.sapphire.oasis.dev'))
 
 # Contract address and ABI from your challengePlatform.ts
-CONTRACT_ADDRESS = "0x2c3Cba7E40f0704292BDd9D04d985c9FB20B4ed2"
+CONTRACT_ADDRESS = "0x22A7d8Bc411dd82a15dF44Eb0543a961639d0201"
 CONTRACT_ABI = [
-    {
-        "name": "ChallengeCreated",
-        "type": "event",
-        "inputs": [
-            {
-                "name": "challengeId",
-                "type": "uint256",
-                "indexed": True,
-                "internalType": "uint256"
-            },
-            {
-                "name": "name",
-                "type": "string",
-                "indexed": False,
-                "internalType": "string"
-            },
-            {
-                "name": "creator",
-                "type": "address",
-                "indexed": True,
-                "internalType": "address"
-            }
+  {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "name": "ChallengeCreated",
+    "type": "event",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": True,
+        "internalType": "uint256"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "indexed": False,
+        "internalType": "string"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": True,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": False
+  },
+  {
+    "name": "ChallengeJoined",
+    "type": "event",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": True,
+        "internalType": "uint256"
+      },
+      {
+        "name": "participant",
+        "type": "address",
+        "indexed": True,
+        "internalType": "address"
+      },
+      {
+        "name": "stakeAmount",
+        "type": "uint256",
+        "indexed": False,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": False
+  },
+  {
+    "name": "ChallengePassed",
+    "type": "event",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": True,
+        "internalType": "uint256"
+      },
+      {
+        "name": "participant",
+        "type": "address",
+        "indexed": True,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": False
+  },
+  {
+    "name": "ChallengeSettled",
+    "type": "event",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": True,
+        "internalType": "uint256"
+      },
+      {
+        "name": "prizeAmount",
+        "type": "uint256",
+        "indexed": False,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": False
+  },
+  {
+    "name": "RewardClaimed",
+    "type": "event",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": True,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winner",
+        "type": "address",
+        "indexed": True,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": False,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": False
+  },
+  {
+    "name": "STAKE_AMOUNT",
+    "type": "function",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "challengeParticipants",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "challenges",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "pool",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "playerCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isSettled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "claimRewards",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "name": "createChallenge",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_name",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "name": "getChallengeState",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "exists",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "isSettled",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "playerCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pool",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "winnerCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "hasClaimed",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_player",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "hasJoined",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_player",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "hasPassed",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_player",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "joinChallenge",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "name": "markChallengePassed",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_participant",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "name": "owner",
+    "type": "function",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "players",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "hasPassed",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "hasJoined",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "hasClaimed",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "settleChallenge",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "name": "getAllChallenges",
+    "type": "function",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "creator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "pool",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "playerCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isSettled",
+            "type": "bool",
+            "internalType": "bool"
+          }
         ],
-        "anonymous": False
-    },
-    {
-        "name": "ChallengeJoined",
-        "type": "event",
-        "inputs": [
-            {
-                "name": "challengeId",
-                "type": "uint256",
-                "indexed": True,
-                "internalType": "uint256"
-            },
-            {
-                "name": "participant",
-                "type": "address",
-                "indexed": True,
-                "internalType": "address"
-            }
-        ],
-        "anonymous": False
-    },
-    {
-        "name": "getAllChallenges",
-        "type": "function",
-        "inputs": [],
-        "outputs": [
-            {
-                "name": "",
-                "type": "tuple[]",
-                "components": [
-                    {
-                        "name": "id",
-                        "type": "uint256",
-                        "internalType": "uint256"
-                    },
-                    {
-                        "name": "name",
-                        "type": "string",
-                        "internalType": "string"
-                    },
-                    {
-                        "name": "creator",
-                        "type": "address",
-                        "internalType": "address"
-                    }
-                ],
-                "internalType": "struct ChallengePlatform.Challenge[]"
-            }
-        ],
-        "stateMutability": "view"
-    }
+        "internalType": "struct ChallengePlatform.Challenge[]"
+      }
+    ],
+    "stateMutability": "view"
+  }
 ]
 
 # Initialize contract
